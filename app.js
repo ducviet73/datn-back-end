@@ -49,4 +49,8 @@ app.use(function(err, req, res, next) {
 
 
 
-module.exports = app;
+const PORTs = process.env.POST ;
+
+app.listen(PORTs, () => {
+  console.log("Server is running on port " + PORTs);
+});
