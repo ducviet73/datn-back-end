@@ -4,7 +4,7 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const cors = require('cors');
-const connectDb = require('./data/db');
+const connectDB = require('./data/db');
 // var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var productRouter = require('./routes/products');
@@ -14,7 +14,7 @@ var orderRouter = require('./routes/order');
 
 
 var app = express();
-connectDb();
+connectDB();
 app.use(cors());
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -46,9 +46,11 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
-const port = process.env.PORT || 3002; // 0 sẽ yêu cầu hệ thống chọn một cổng trống
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+
+const PORT = process.env.PORT;
+
+app.listen(PORT, () => {
+  console.log("Server is running on port " + PORT);
 });
 
 module.exports = app;
