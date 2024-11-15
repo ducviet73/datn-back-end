@@ -41,6 +41,7 @@ router.use((req, res, next) => {
 });
 
 // Định nghĩa các routes và liên kết với các phương thức của controller
+
 router.get('/products', productController.getAllProducts);
 router.get('/products/detail/:productId', productController.getProductById);
 router.get('/products/search/:keyword', productController.searchProducts);
