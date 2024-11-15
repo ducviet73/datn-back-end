@@ -5,7 +5,7 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const cors = require('cors');
 const connectDb = require('./data/db');
-var indexRouter = require('./routes/index');
+// var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var productRouter = require('./routes/products');
 var categoryRouter=require('./routes/category');
@@ -47,5 +47,14 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
+const http = require('http');
 
+const port = process.env.PORT || 3002;
+app.set('port', port);
+
+const server = http.createServer(app);
+
+server.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+});
 module.exports = app;
