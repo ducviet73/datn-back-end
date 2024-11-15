@@ -10,7 +10,7 @@ var usersRouter = require('./routes/users');
 var productRouter = require('./routes/products');
 var categoryRouter=require('./routes/category');
 var orderRouter = require('./routes/order');
-
+require("dotenv").config();
 
 
 var app = express();
