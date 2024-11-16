@@ -41,7 +41,6 @@ router.use((req, res, next) => {
 });
 
 // Định nghĩa các routes và liên kết với các phương thức của controller
-
 router.get('/products', productController.getAllProducts);
 router.get('/products/detail/:productId', productController.getProductById);
 router.get('/products/search/:keyword', productController.searchProducts);
@@ -49,6 +48,7 @@ router.get('/products/category/:categoryId', productController.getProductsByCate
 router.get('/products/hot', productController.getHotProducts);
 router.get('/products/bestselling', productController.getBestSellingProducts);
 router.get('/products/sale', productController.getSaleProducts);
+router.get('/products/newproducts', productController.getNewProducts);
 router.get('/products/page', async (req, res) => {
     try {
         const { page, limit } = req.query;

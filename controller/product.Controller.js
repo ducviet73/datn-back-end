@@ -236,6 +236,25 @@ const getBestSellingProducts = async (req, res) => {
     }
 };
 
+const getNewProducts = async (req, res) => {
+    try {
+        const newProducts = await Product.find()
+            .sort({ createdAt: -1 })
+            .limit(4)
+            .populate('category', 'name')
+            .exec();
+
+        if (newProducts.length > 0) {
+            res.status(200).json(newProducts);
+        } else {
+            res.status(404).json({ message: 'No best-selling products found' });
+        }
+    } catch (error) {
+        console.error('Error fetching best-selling products:', error);
+        res.status(500).json({ message: 'Error fetching best-selling products' });
+    }
+};
+
 // Lấy sản phẩm đang khuyến mãi với chi tiết danh mục
 const getSaleProducts = async (req, res) => {
     try {
@@ -284,5 +303,6 @@ module.exports = {
     getSaleProducts,
     addProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    getNewProducts
 };
