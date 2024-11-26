@@ -82,6 +82,7 @@ router.post('/', async (req, res) => {
     }
 });
 
+
 // Get all orders
 router.get('/', orderController.getAllOrders);
 
@@ -101,7 +102,6 @@ router.get('/delivered', async (req, res) => {
         res.status(500).json({ message: 'Error fetching delivered orders', error });
     }
 });
-
 // Get orders by user ID
 router.get('/user/:userId', async (req, res) => {
     const userId = req.params.userId;
