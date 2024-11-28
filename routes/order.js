@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const nodemailer = require('nodemailer');
@@ -9,14 +8,12 @@ const Order = require('../model/order.Model');
 const User = require('../model/user.Model');
 const orderController = require('../controller/order.Controller');
 
-
-
 // Configure Nodemailer
 const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
         user: "ncb301104@gmail.com",
-        pass:"osqx ueqr ohiu ghmd"
+        pass: "osqx ueqr ohiu ghmd",  // You should use environment variables for sensitive information
     },
 });
 
@@ -36,7 +33,7 @@ router.post('/', async (req, res) => {
         const order = new Order(orderDetails);
         await order.save();
 
-        // Generate invoice PDF
+        // Initialize PDFDocument here
         const doc = new PDFDocument();
         const invoicePath = path.join(invoicesDir, `invoice-${order._id}.pdf`);
         doc.pipe(fs.createWriteStream(invoicePath));
@@ -48,40 +45,60 @@ router.post('/', async (req, res) => {
         doc.text(`Phương Thức Thanh Toán: ${orderDetails.paymentMethod}`);
         doc.text('Chi Tiết Đơn Hàng:');
 
+        // List items in the order
         orderDetails.details.forEach((item, index) => {
             doc.text(`${index + 1}. Tên Sản Phẩm: ${item.name}, Số Lượng: ${item.quantity}, Giá: ${item.price}`);
         });
 
+        // Finalize the PDF
         doc.end();
 
-        // Send email with invoice
-        const user = await User.findById(orderDetails.userId);
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
+        // After the PDF is finished, send the email
+        doc.on('finish', async () => {
+            // Read the generated invoice file
+            fs.readFile(invoicePath, (err, data) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Failed to read the invoice file' });
+                }
 
-        const mailOptions = {
-            from:" ncb301104@gmail.com",
-            to: user.email,
-            subject: 'Order Confirmation',
-            text: `Thank you for your order! Your order ID is ${order._id}.`,
-            attachments: [
-                {
-                    filename: `invoice-${order._id}.pdf`,
-                    path: invoicePath,
-                },
-            ],
-        };
+                // Send the PDF as a response with the correct headers for download
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', `attachment; filename=invoice-${order._id}.pdf`);
+                res.send(data);
+            });
 
-        await transporter.sendMail(mailOptions);
+            // Send email with invoice
+            const user = await User.findById(orderDetails.userId);
+            if (!user) {
+                return res.status(404).json({ error: 'User not found' });
+            }
 
-        res.status(201).json({ message: 'Order placed successfully!' });
+            const mailOptions = {
+                from: "ncb301104@gmail.com",
+                to: user.email,
+                subject: 'Order Confirmation',
+                text: `Thank you for your order! Your order ID is ${order._id}.`,
+                attachments: [
+                    {
+                        filename: `invoice-${order._id}.pdf`,
+                        path: invoicePath,
+                    },
+                ],
+            };
+
+            try {
+                await transporter.sendMail(mailOptions);
+                res.status(201).json({ message: 'Order placed successfully, email sent!' });
+            } catch (emailError) {
+                console.error('Error sending email:', emailError);
+                res.status(500).json({ error: 'Failed to send email' });
+            }
+        });
     } catch (error) {
         console.error('Error creating order:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
-
 
 // Get all orders
 router.get('/', orderController.getAllOrders);
@@ -94,6 +111,8 @@ router.put('/:id', orderController.updateOrder);
 
 // Delete an order
 router.delete('/:id', orderController.deleteOrder);
+
+// Get orders by user ID
 router.get('/delivered', async (req, res) => {
     try {
         const deliveredOrders = await Order.find({ status: 'delivered' });
@@ -103,21 +122,18 @@ router.get('/delivered', async (req, res) => {
     }
 });
 
-// Get orders by user ID
-router.get('/user/:userId', async (req, res) => {
-    const userId = req.params.userId;
-
+// Get total orders
+router.get('/total-orders', async (req, res) => {
     try {
-        const orders = await Order.find({ userId }).exec();
-        if (!orders.length) {
-            return res.status(404).json({ error: 'Orders not found' });
-        }
-        res.json(orders);
+        const totalOrders = await Order.countDocuments();  // Đếm tổng số đơn hàng trong cơ sở dữ liệu
+        res.json({ totalOrders });
     } catch (error) {
-        console.error('Error fetching orders:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        console.error(error);
+        res.status(500).json({ message: "Đã xảy ra lỗi khi tính tổng đơn hàng." });
     }
 });
+
+// Get total income from delivered orders
 router.get('/incomes/total', async (req, res) => {
     try {
         const totalIncome = await Order.aggregate([
@@ -131,24 +147,7 @@ router.get('/incomes/total', async (req, res) => {
     }
 });
 
-// Update order status
-router.put('/:orderId/status', async (req, res) => {
-    const { orderId } = req.params;
-    const { status } = req.body;
-
-    try {
-        const order = await Order.findById(orderId);
-        if (!order) {
-            return res.status(404).json({ error: 'Order not found' });
-        }
-        order.status = status;
-        await order.save();
-        res.status(200).json(order);
-    } catch (error) {
-        console.error('Error updating order status:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
+// Get orders by status
 router.get('/status/:status', async (req, res) => {
     const { status } = req.params;
     try {
@@ -158,16 +157,24 @@ router.get('/status/:status', async (req, res) => {
         res.status(500).json({ message: 'Error fetching orders by status', error });
     }
 });
+
+// Get orders by date
 router.get('/date/:date', async (req, res) => {
     const { date } = req.params;
     try {
-        const orders = await Order.find({ createdAt: { $gte: new Date(date), $lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1)) } });
+        const orders = await Order.find({
+            createdAt: {
+                $gte: new Date(date),
+                $lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1))
+            }
+        });
         res.json(orders);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching orders by date', error });
     }
 });
 
+// Get total count of orders
 router.get('/count', async (req, res) => {
     try {
         const count = await Order.countDocuments();
